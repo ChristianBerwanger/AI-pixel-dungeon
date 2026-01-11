@@ -188,7 +188,8 @@ public class DesktopLauncher {
 		
 		config.setWindowIcon("icons/icon_16.png", "icons/icon_32.png", "icons/icon_48.png",
 				"icons/icon_64.png", "icons/icon_128.png", "icons/icon_256.png");
-
+        Thread server_thread = new Thread(new GameSocketServer(5000));
+        server_thread.start();
 		new Lwjgl3Application(new ShatteredPixelDungeon(new DesktopPlatformSupport()), config);
 	}
 }
