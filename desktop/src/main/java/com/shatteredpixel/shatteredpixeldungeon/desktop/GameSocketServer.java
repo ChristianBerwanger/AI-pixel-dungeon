@@ -3,9 +3,15 @@
 Class to connect to my python script
  */
 package com.shatteredpixel.shatteredpixeldungeon.desktop;
+import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
+import com.watabou.noosa.Scene;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
+import com.badlogic.gdx.utils.Json;
+import com.badlogic.gdx.utils.JsonWriter;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
@@ -17,6 +23,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 
 public class GameSocketServer implements Runnable {
@@ -53,6 +60,7 @@ public class GameSocketServer implements Runnable {
             switch (action) {
                 case "MOVE":
                     System.out.println("MOVE");
+                    performMove("UP");
                     break;
                 case "WAIT":
                     System.out.println("WAIT");
@@ -84,6 +92,7 @@ public class GameSocketServer implements Runnable {
         if (Dungeon.hero == null || Dungeon.level == null) {
             return "{\"status\": \"loading\"}";
         }
+        // Hero Data
         int hp = Dungeon.hero.HP;
         int maxHp = Dungeon.hero.HT;
         int depth = Dungeon.depth;
@@ -95,6 +104,18 @@ public class GameSocketServer implements Runnable {
         int mapWidth = Dungeon.level.width();
         int x = pos % mapWidth;
         int y = pos / mapWidth;
+
+        int[] terrain;
+        boolean[] visited;
+        boolean[] visible;
+
+        ArrayList<Mob> mobs = new ArrayList<>();
+
+
+        StringBuilder gameState_json = new StringBuilder();
+        gameState_json.append("{");
+        gameState_json.append("\"meta");
+
         return String.format(
                 "{" +
                         "\"status\": \"playing\"," +
@@ -109,5 +130,37 @@ public class GameSocketServer implements Runnable {
                         "}",
                 hp, maxHp, lvl, exp, gold, depth, x, y
         );
+    }
+    private void performMove(String direction){
+        if(Dungeon.hero == null || Dungeon.level == null) return;
+        int pos = Dungeon.hero.pos;
+        int world_width = Dungeon.level.width();
+        int target = -1;
+        switch (direction.toUpperCase()) {
+            case "UP": target = pos - world_width; break;
+            case "DOWN": target = pos + world_width; break;
+            case "LEFT":  target = pos - 1; break;
+            case "RIGHT":  target = pos + 1; break;
+
+            case "UP_LEFT": target = pos - world_width - 1; break;
+            case "UP_RIGHT": target = pos - world_width + 1; break;
+            case "DOWN_LEFT": target = pos + world_width - 1; break;
+            case "DOWN_RIGHT": target = pos + world_width + 1; break;
+        }
+        if (target >= 0 && target < Dungeon.level.length()) {
+
+            // We get the current active screen (Scene)
+            Scene currentScene = ShatteredPixelDungeon.scene();
+
+            // We check if we are actually in the game (and not the main menu)
+            if (currentScene instanceof GameScene) {
+                // CAST the scene to GameScene so we can access handleCell
+                GameScene game = (GameScene) currentScene;
+
+                // "handleCell" simulates a tap on that tile.
+                // The game will decide if it's a move, an attack, or opening a door.
+                game.handleCell(target);
+            }
+        }
     }
 }
